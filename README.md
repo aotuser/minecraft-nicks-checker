@@ -1,11 +1,11 @@
 Simple Minecraft Nick Checker
 
-## How to use
+# How to use
 ```
 py src/main.py <args(-arg=value)...>
 ```
 
-## Arguments
+# Arguments
   ## size: Length of the nicks checked.
   ## delay: Delay (in seconds) beetwen each request.
   ## req_size: Ammount of nicks checked p/request
