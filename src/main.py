@@ -14,20 +14,20 @@ init(autoreset = True)
 POSSIBLE_CHARS = [ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
 		  '1', '2', '3', '4', '5', '6', '7', '8', '9', '_' ] # vou me matar
 
-jump_size = 10
-delay = 1
-
-log_invalids = True
-log_valids = True
-
-chars_length = 3
+config = { 
+	"log_valids": True,
+	"log_invalids": False,
+	"nick_length": 3,
+	"req_size": 10,
+	"delay": 2
+}
 
 URL = "https://api.mojang.com/profiles/minecraft"
 
 FILE_LOCK = asyncio.Lock()
 
 async def get_all_combinations():
-	nicks = [ "".join(p) for p in product(POSSIBLE_CHARS, repeat = chars_length) ]
+	nicks = [ "".join(p) for p in product(POSSIBLE_CHARS, repeat = config["nick_length"]) ]
 
 	return nicks
 
@@ -48,12 +48,12 @@ async def process_response(nicks, data):
 		valid_nicks = [ name for name in nicks if name.lower() not in invalid_nicksl ]
 
 	async with FILE_LOCK: # sim, isso vai dar gargalo, mas quem liga
-		if log_invalids:
+		if config["log_invalids"]:
 			with open("data/invalids.txt", "a") as invalids:
 				for nick in invalid_nicks:
 					invalids.write(nick + "\n")
 
-		if log_valids:
+		if config["log_valids"]:
 			with open("data/valids.txt", "a") as valids:
 				for nick in valid_nicks:
 					valids.write(nick + "\n")
@@ -73,9 +73,9 @@ async def main():
 	nicks = await get_all_combinations()
 
 	async with aiohttp.ClientSession() as session:
-		for i in range(0, len(nicks), jump_size):
-			asyncio.create_task(send_request(session, nicks[i : i + jump_size]))
-			await asyncio.sleep(delay)
+		for i in range(0, len(nicks), config["req_size"]):
+			asyncio.create_task(send_request(session, nicks[i : i + config["req_size"]]))
+			await asyncio.sleep(config["delay"])
 
 		while True:
 			pass
@@ -84,10 +84,9 @@ def handle_args(args):
 	final = []
 
 	for i in args:
-		for i in args:
-			if "=" in i:
-				arg, value = i.split("=", 1)
-				final.extend([arg, value])
+		if "=" in i:
+			arg, value = i.split("=", 1)
+			final.extend([arg, value])
 
 	if len(final) <= 0:
 		return
@@ -106,42 +105,36 @@ def handle_args(args):
 
 		if arg == "-delay":
 			try:
-				global delay
+				config["delay"] = int(value)
 
-				delay = int(value)
-
-				if delay <= 0:
-					delay = 1
+				if config["delay"] <= 0:
+					config["delay"] = 1
 			except:
 				print(Style.BRIGHT + Fore.RED + "[Error] Invalid delay value: Value needs to be a int value (seconds)...")
 				print("Example: \"-delay=10\" (10 seconds)")
 
 		if arg == "-size":
 			try:
-				global chars_length
-				
-				chars_length = int(value)
+				config["nick_length"] = int(value)
 
-				if chars_length > 16:
-					chars_length = 16
+				if config["nick_length"] > 16:
+					config["nick_length"] = 16
 
-				if chars_length < 2:
-					chars_length = 2
+				if config["nick_length"] < 2:
+					config["nick_length"] = 2
 			except:
 				print(Style.BRIGHT + Fore.RED + "[Error] Invalid size value: Value needs to be a int value (chars length, max is 16)...")
 				print(Style.BRIGHT + Fore.CYAN + "Example: \"-size=3\" (3 chars, max is 16)")
 
 		if arg == "-req_size":
 			try:
-				global jump_size
+				config["req_size"] = int(value)
 
-				jump_size = int(value)
+				if config["req_size"] > 10:
+					config["req_size"] = 10
 
-				if jump_size > 10:
-					jump_size = 10
-
-				if jump_size <= 0:
-					jump_size = 1
+				if config["req_size"] <= 0:
+					config["req_size"] = 1
 			except:
 				print(Style.BRIGHT + Fore.RED + "[Error] Invalid requests size value: Value needs to be a int value (length of nicks checked p/request, max is 10)...")
 				print(Style.BRIGHT + Fore.CYAN + "Example: \"-req_size=10\" (10 nicks checked p/request, max is 10)")
@@ -160,22 +153,14 @@ def handle_args(args):
 
 		if arg == "-log_invalids":
 			try:
-				global log_invalids
-
-				boolean = value.lower() == "true"
-
-				log_invalids = boolean
+				config["log_invalids"] = value.lower() == "true"
 			except:
 				print(Style.BRIGHT + Fore.RED + "[Error] Invalid log invalids value: Value needs to be a bool value...")
 				print(Style.BRIGHT + Fore.CYAN + "Example: \"-log_invalids=True\"")
 
 		if arg == "-log_valids":
 			try:
-				global log_valids
-
-				boolean = value.lower() == "true"
-
-				log_valids = boolean
+				config["log_valids"] = value.lower() == "true"
 			except:
 				print(Style.BRIGHT + Fore.RED + "[Error] Invalid log valids value: Value needs to be a bool value...")
 				print(Style.BRIGHT + Fore.CYAN + "Example: \"-log_valids=True\"")
